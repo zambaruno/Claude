@@ -1,0 +1,60 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Generate Android project
+        run: flutter create --platforms android --org com.zambaruno --project-name lost .
+      - name: Configure Android permissions and OAuth callback
+        run: python3 tools/configure_android.py
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Generate LOST launcher icon
+        run: dart run flutter_launcher_icons
+      - name: Analyze app sources
+        run: flutter analyze lib test --no-fatal-infos --no-fatal-warnings
+      - name: Test auth UI and offline queue
+        run: flutter test
+      - name: Preserve debug signing key for future test builds
+        if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[build apk]')
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: lost-android-debug-key-v1
+      - name: Build debug APK
+        env:
+          LOST_PAYPAL_ME: ${{ vars.LOST_PAYPAL_ME }}
+          LOST_CHECKOUT_LINKS: ${{ vars.LOST_CHECKOUT_LINKS }}
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+        if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[build apk]')
+        run: >-
+          flutter build apk --debug --target-platform android-arm64 --split-per-abi
+          --build-number=${{ github.run_number }}
+          "--dart-define=LOST_PAYPAL_ME=$LOST_PAYPAL_ME"
+          "--dart-define=LOST_CHECKOUT_LINKS=$LOST_CHECKOUT_LINKS"
+          "--dart-define=GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID"
+          --dart-define=LOST_BUILD_NUMBER=${{ github.run_number }}
+          --dart-define=LOST_BUILD_COMMIT=${{ github.sha }}
+          --dart-define=SUPABASE_URL=https://loluszvovtqiqeawyhhd.supabase.co
+          --dart-define=SUPABASE_ANON_KEY=sb_publishable_gykFsCO0UhTS1iTxvW0G9Q_Dgcnt3ZL
+      - name: Print debug signing SHA-1 (needed for the Android OAuth client in Google Cloud)
+        if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[build apk]')
+        run: keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android | grep -E 'SHA1|SHA-1'
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[build apk]')
+        with:
+          name: LOST-build-${{ github.run_number }}-arm64-debug-APK
+          path: build/app/outputs/flutter-apk/app-arm64-v8a-debug.apk
+          retention-days: 1
+

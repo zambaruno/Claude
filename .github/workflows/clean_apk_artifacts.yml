@@ -1,0 +1,115 @@
+name: Clean APK artifacts
+
+on:
+  workflow_dispatch:
+    inputs:
+      preview_only:
+        description: "Preview only (untick to permanently delete APK files)"
+        type: boolean
+        default: true
+      keep_latest:
+        description: "Keep the newest APK"
+        type: boolean
+        default: false
+
+permissions:
+  actions: read
+
+concurrency:
+  group: clean-apk-artifacts
+  cancel-in-progress: false
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      targets: ${{ steps.plan.outputs.targets }}
+    steps:
+      - name: List APK files selected for cleanup
+        id: plan
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        env:
+          KEEP_LATEST: ${{ inputs.keep_latest }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const artifacts = await github.paginate(
+              github.rest.actions.listArtifactsForRepo,
+              { owner, repo, per_page: 100 }
+            );
+            // Match APK build names only. AABs, caches, logs and source are untouched.
+            const apks = artifacts
+              .filter(a => !a.expired && /^LOST.*(?:[-_. ]APK|\.apk)$/i.test(a.name))
+              .sort((a, b) => b.created_at.localeCompare(a.created_at) || b.id - a.id);
+            const keepLatest = process.env.KEEP_LATEST === 'true';
+            const targets = keepLatest ? apks.slice(1) : apks;
+            core.setOutput('targets', JSON.stringify(targets.map(a => ({
+              id: a.id, name: a.name, created_at: a.created_at,
+              size_in_bytes: a.size_in_bytes
+            }))));
+            const total = targets.reduce((sum, a) => sum + a.size_in_bytes, 0);
+            core.info('Selected ' + targets.length + ' APK artifacts, ' +
+              (total / 1048576).toFixed(1) + ' MiB.');
+            const rows = targets.map(a => [
+              String(a.id), a.name, a.created_at,
+              (a.size_in_bytes / 1048576).toFixed(1)
+            ]);
+            await core.summary
+              .addHeading('APK cleanup selection')
+              .addRaw('Permanent deletion is enabled only when Preview only is unchecked.\n\n')
+              .addRaw(keepLatest && apks.length ? 'Keeping APK ' + apks[0].id + '.\n\n' : '')
+              .addTable([
+                [{data:'ID',header:true},{data:'Name',header:true},
+                 {data:'Created',header:true},{data:'MiB',header:true}],
+                ...rows
+              ])
+              .write();
+
+  cleanup:
+    needs: inventory
+    if: ${{ !inputs.preview_only }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+    steps:
+      - name: Permanently delete selected APK artifacts
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        env:
+          TARGETS: ${{ needs.inventory.outputs.targets }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const targets = JSON.parse(process.env.TARGETS);
+            let deleted = 0;
+            let bytes = 0;
+            for (const target of targets) {
+              try {
+                const { data: current } = await github.rest.actions.getArtifact({
+                  owner, repo, artifact_id: target.id
+                });
+                if (current.name !== target.name ||
+                    current.created_at !== target.created_at ||
+                    !/^LOST.*(?:[-_. ]APK|\.apk)$/i.test(current.name)) {
+                  throw new Error('Artifact changed: ' + target.id);
+                }
+                await github.rest.actions.deleteArtifact({
+                  owner, repo, artifact_id: target.id
+                });
+                deleted++;
+                bytes += target.size_in_bytes;
+                core.info('Deleted APK artifact ' + target.id + ': ' + target.name);
+              } catch (error) {
+                if (error.status === 404) {
+                  core.info('Already absent: ' + target.id);
+                } else {
+                  throw error;
+                }
+              }
+            }
+            await core.summary.addHeading('APK cleanup complete')
+              .addRaw('Deleted ' + deleted + ' APK artifacts (' +
+                (bytes / 1048576).toFixed(1) + ' MiB).\n')
+              .addRaw('AABs, source, caches and workflow runs were preserved.\n')
+              .write();

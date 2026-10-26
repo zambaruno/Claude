@@ -1,0 +1,45 @@
+name: lost_mvp
+description: LOST — find and return things.
+publish_to: none
+version: 0.2.0+1
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  supabase_flutter: ^2.8.0
+  image_picker: ^1.1.2
+  flutter_image_compress: 2.5.1
+  path_provider: 2.1.5
+  geolocator: ^13.0.2
+  google_sign_in: ^6.2.2
+  qr_flutter: ^4.1.0
+  printing: ^5.13.4
+  pdf: ^3.11.1
+  url_launcher: ^6.3.1
+
+dev_dependencies:
+  http: ^1.2.2
+  path_provider_platform_interface: ^2.1.2
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  android: true
+  image_path: assets/lost_logo.png
+  adaptive_icon_background: "#313131"
+  adaptive_icon_foreground: assets/lost_logo.png
+  min_sdk_android: 21
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/lost_logo.png
+    - assets/camera_lens.png
+    - assets/file_000000008284822fab87455a1155f93a.png
+
+    - assets/google_sign_in.png

@@ -1,0 +1,3 @@
+LOST Google Play release trigger.
+Update this file when a new tested build should be sent to Google Play.
+2026-10-05: retry draft internal upload after removing unsupported review flag.

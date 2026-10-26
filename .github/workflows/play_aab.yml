@@ -1,0 +1,88 @@
+name: Build Play release AAB
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/play-release-trigger.txt'
+  workflow_dispatch:
+    inputs:
+      upload_to_play:
+        description: "Upload a draft to Google Play internal testing"
+        type: boolean
+        default: true
+
+jobs:
+  play_bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Generate Android project with final package ID
+        run: flutter create --platforms android --org com.zambaruno --project-name lost .
+      - name: Configure permissions and Magic Link callback
+        run: python3 tools/configure_android.py
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Generate red LOST launcher icon
+        run: dart run flutter_launcher_icons
+      - name: Analyze app sources
+        run: flutter analyze lib --no-fatal-infos --no-fatal-warnings
+      - name: Check upload signing credentials
+        env:
+          LOST_UPLOAD_KEYSTORE_BASE64: ${{ secrets.LOST_UPLOAD_KEYSTORE_BASE64 }}
+          LOST_UPLOAD_STORE_PASSWORD: ${{ secrets.LOST_UPLOAD_STORE_PASSWORD }}
+          LOST_UPLOAD_KEY_ALIAS: ${{ secrets.LOST_UPLOAD_KEY_ALIAS }}
+          LOST_UPLOAD_KEY_PASSWORD: ${{ secrets.LOST_UPLOAD_KEY_PASSWORD }}
+        run: |
+          for name in LOST_UPLOAD_KEYSTORE_BASE64 LOST_UPLOAD_STORE_PASSWORD LOST_UPLOAD_KEY_ALIAS LOST_UPLOAD_KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing GitHub Actions secret: ${name}"
+              exit 1
+            fi
+          done
+      - name: Build signed release AAB
+        env:
+          LOST_UPLOAD_KEYSTORE_BASE64: ${{ secrets.LOST_UPLOAD_KEYSTORE_BASE64 }}
+          LOST_UPLOAD_STORE_PASSWORD: ${{ secrets.LOST_UPLOAD_STORE_PASSWORD }}
+          LOST_UPLOAD_KEY_ALIAS: ${{ secrets.LOST_UPLOAD_KEY_ALIAS }}
+          LOST_UPLOAD_KEY_PASSWORD: ${{ secrets.LOST_UPLOAD_KEY_PASSWORD }}
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+        run: |
+          export LOST_UPLOAD_KEYSTORE_PATH="$RUNNER_TEMP/lost-upload.jks"
+          printf '%s' "$LOST_UPLOAD_KEYSTORE_BASE64" | base64 --decode > "$LOST_UPLOAD_KEYSTORE_PATH"
+          unset LOST_UPLOAD_KEYSTORE_BASE64
+          python3 tools/configure_release_signing.py
+          build_number=$((10000 + GITHUB_RUN_NUMBER * 100 + GITHUB_RUN_ATTEMPT))
+          flutter build appbundle --release --build-number="$build_number" \
+            --dart-define=SUPABASE_URL=https://loluszvovtqiqeawyhhd.supabase.co \
+            --dart-define=GOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID" \
+            --dart-define=SUPABASE_ANON_KEY=sb_publishable_gykFsCO0UhTS1iTxvW0G9Q_Dgcnt3ZL
+          # A self-signed upload certificate is expected; do not use jarsigner -strict.
+          jarsigner -verify build/app/outputs/bundle/release/app-release.aab
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LOST-Play-release-AAB
+          path: build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+      - name: Check Google Play credential
+        if: ${{ github.event_name == 'push' || inputs.upload_to_play }}
+        env:
+          PLAY_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$PLAY_JSON" ]; then
+            echo "::error::Missing GitHub Actions secret: GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"
+            exit 1
+          fi
+      - name: Stage draft in Google Play internal testing
+        if: ${{ github.event_name == 'push' || inputs.upload_to_play }}
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.zambaruno.lost
+          releaseFiles: build/app/outputs/bundle/release/app-release.aab
+          tracks: internal
+          status: draft
