@@ -49,6 +49,7 @@ jobs:
           --dart-define=SUPABASE_URL=https://loluszvovtqiqeawyhhd.supabase.co
           --dart-define=SUPABASE_ANON_KEY=sb_publishable_gykFsCO0UhTS1iTxvW0G9Q_Dgcnt3ZL
       - name: Print debug signing SHA-1 (needed for the Android OAuth client in Google Cloud)
+        continue-on-error: true
         if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[build apk]')
         run: keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android | grep -E 'SHA1|SHA-1'
       - uses: actions/upload-artifact@v4
@@ -57,4 +58,3 @@ jobs:
           name: LOST-build-${{ github.run_number }}-arm64-debug-APK
           path: build/app/outputs/flutter-apk/app-arm64-v8a-debug.apk
           retention-days: 1
-
