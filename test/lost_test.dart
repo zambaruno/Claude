@@ -188,7 +188,8 @@ void main() {
     await tester.tap(find.text('ZH'));
     await tester.pumpAndSettle();
     expect(find.byType(PosterPage), findsOneWidget);
-    expect(find.text('LOST'), findsOneWidget);
+    // 'LOST' now appears both in the shared ZambaruBar and on the poster.
+    expect(find.text('LOST'), findsWidgets);
     expect(find.byType(QrImageView), findsOneWidget);
     expect(find.textContaining('公共交通機関'), findsNothing);
     expect(find.text('丢东西了吗？'), findsOneWidget);
