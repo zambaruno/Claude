@@ -65,6 +65,20 @@ const phoneAuthReady = bool.fromEnvironment(
   defaultValue: false,
 );
 late final SupabaseClient db;
+// Global navigator so the brand mark overlay can open pages from anywhere.
+final navigatorKey = GlobalKey<NavigatorState>();
+bool _fdOpen = false;
+void openFreeDiagnostic() {
+  if (_fdOpen) return;
+  final nav = navigatorKey.currentState;
+  if (nav == null) return;
+  _fdOpen = true;
+  nav
+      .push(
+        MaterialPageRoute<void>(builder: (_) => const FreeDiagnosticPage()),
+      )
+      .then((_) => _fdOpen = false);
+}
 Position? selectedPosition;
 const maxPhotoBytes = 2 * 1024 * 1024;
 
@@ -320,6 +334,7 @@ class _LostAppState extends State<LostApp> with WidgetsBindingObserver {
     builder: (_, locale, child) => MaterialApp(
       title: 'LOST',
       debugShowCheckedModeBanner: false,
+      navigatorKey: navigatorKey,
       locale: locale,
       supportedLocales: interfaceLanguages.keys.map((code) => Locale(code)),
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
@@ -335,6 +350,27 @@ class _LostAppState extends State<LostApp> with WidgetsBindingObserver {
           scrolledUnderElevation: 0,
         ),
         useMaterial3: true,
+      ),
+      // A large, semi-transparent Free Diagnostic mark on every screen.
+      builder: (context, child) => Stack(
+        children: [
+          if (child != null) child,
+          Positioned(
+            top: MediaQuery.paddingOf(context).top + 4,
+            right: 6,
+            child: GestureDetector(
+              onTap: openFreeDiagnostic,
+              child: Opacity(
+                opacity: 0.85,
+                child: Image.asset(
+                  'assets/free_diagnostic_logo.png',
+                  width: 104,
+                  height: 104,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
       home: const HomePage(),
     ),
@@ -480,25 +516,6 @@ class ZambaruBar extends StatelessWidget implements PreferredSizeWidget {
             fontWeight: FontWeight.w700,
             letterSpacing: .5,
             fontSize: 17,
-          ),
-        ),
-        const Spacer(),
-        // Zambaruno Free Diagnostic — visible on every screen, opens its page.
-        Builder(
-          builder: (context) => InkWell(
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const FreeDiagnosticPage()),
-            ),
-            borderRadius: BorderRadius.circular(22),
-            child: Padding(
-              padding: const EdgeInsets.all(2),
-              child: Image.asset(
-                'assets/free_diagnostic_logo.png',
-                width: 38,
-                height: 38,
-              ),
-            ),
           ),
         ),
       ],
