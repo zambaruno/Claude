@@ -39,6 +39,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/lost_logo.png
+    - assets/free_diagnostic_logo.png
     - assets/camera_lens.png
     - assets/file_000000008284822fab87455a1155f93a.png
 

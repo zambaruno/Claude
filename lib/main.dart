@@ -483,23 +483,82 @@ class ZambaruBar extends StatelessWidget implements PreferredSizeWidget {
           ),
         ),
         const Spacer(),
-        InkWell(
-          onTap: () => openSite('https://www.zambaru.com'),
-          borderRadius: BorderRadius.circular(8),
-          child: const Padding(
-            padding: EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-            child: Text(
-              'www.zambaru.com',
-              style: TextStyle(
-                fontSize: 12.5,
-                color: brandRed,
-                fontWeight: FontWeight.w600,
-                letterSpacing: .2,
+        // Zambaruno Free Diagnostic — visible on every screen, opens its page.
+        Builder(
+          builder: (context) => InkWell(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const FreeDiagnosticPage()),
+            ),
+            borderRadius: BorderRadius.circular(22),
+            child: Padding(
+              padding: const EdgeInsets.all(2),
+              child: Image.asset(
+                'assets/free_diagnostic_logo.png',
+                width: 38,
+                height: 38,
               ),
             ),
           ),
         ),
       ],
+    ),
+  );
+}
+
+// Provisional landing/download page for the Zambaruno Free Diagnostic app.
+class FreeDiagnosticPage extends StatelessWidget {
+  const FreeDiagnosticPage({super.key});
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(),
+    body: SafeArea(
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.asset(
+                'assets/free_diagnostic_logo.png',
+                width: MediaQuery.sizeOf(context).width * .62,
+                fit: BoxFit.contain,
+              ),
+              const SizedBox(height: 24),
+              Text(
+                tr(
+                  context,
+                  'Бесплатная диагностика бытовой и любой другой техники.',
+                ),
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 17, height: 1.4),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                tr(
+                  context,
+                  'Приложение скоро будет доступно для скачивания.',
+                ),
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 13.5, color: Colors.black54),
+              ),
+              const SizedBox(height: 26),
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: brandRed,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 26,
+                    vertical: 14,
+                  ),
+                ),
+                onPressed: () => openSite('https://www.zambaruno.com'),
+                icon: const Icon(Icons.download, size: 20),
+                label: Text(tr(context, 'Скачать')),
+              ),
+            ],
+          ),
+        ),
+      ),
     ),
   );
 }
@@ -579,6 +638,7 @@ class _SupportPageState extends State<SupportPage> {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: paper,
+    appBar: const ZambaruBar(),
     bottomNavigationBar: const AppNavBar(),
     body: SafeArea(
       child: Column(
