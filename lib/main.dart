@@ -35,7 +35,7 @@ const appLink = String.fromEnvironment(
 // Web OAuth client ID enables the native Google account picker.
 const googleWebClientId = String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
 const authCallback = 'com.zambaruno.lost://login-callback/';
-const appVersion = '0.2.0';
+const appVersion = '0.3.0';
 // Flat light palette that matches the red emblem.
 const brandRed = Color(0xffc81e1e);
 const acceptGreen = Color(0xff1f9d55);
@@ -451,6 +451,52 @@ class AppNavBar extends StatelessWidget {
   );
 }
 
+// Shared top bar: LOST mark on the left, the home site on the right.
+// Every path through the app visibly leads back to www.zambaru.com.
+class ZambaruBar extends StatelessWidget implements PreferredSizeWidget {
+  const ZambaruBar({super.key});
+  @override
+  Size get preferredSize => const Size.fromHeight(52);
+  @override
+  Widget build(BuildContext context) => AppBar(
+    titleSpacing: 12,
+    title: Row(
+      children: [
+        Image.asset('assets/lost_logo.png', width: 26, height: 26),
+        const SizedBox(width: 8),
+        const Text(
+          'LOST',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            letterSpacing: .5,
+            fontSize: 17,
+          ),
+        ),
+        const Spacer(),
+        InkWell(
+          onTap: () => launchUrl(
+            Uri.parse('https://www.zambaru.com'),
+            mode: LaunchMode.externalApplication,
+          ),
+          borderRadius: BorderRadius.circular(8),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+            child: Text(
+              'www.zambaru.com',
+              style: TextStyle(
+                fontSize: 12.5,
+                color: brandRed,
+                fontWeight: FontWeight.w600,
+                letterSpacing: .2,
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 Future<void> beginPayment(PaymentSelection selection) async {
   final uri = supportPaymentUri(selection);
   if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
@@ -698,6 +744,7 @@ class CapturePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: paper,
+    appBar: const ZambaruBar(),
     bottomNavigationBar: const AppNavBar(),
     body: SafeArea(
       child: Center(
@@ -977,6 +1024,7 @@ class _FeedPageState extends State<FeedPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
+    appBar: const ZambaruBar(),
     bottomNavigationBar: const AppNavBar(),
     body: SafeArea(
       bottom: false,
@@ -1358,7 +1406,7 @@ class _SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(),
+    appBar: const ZambaruBar(),
     bottomNavigationBar: const AppNavBar(signingIn: true),
     body: SafeArea(
       child: Center(
@@ -1548,7 +1596,7 @@ class _DetailPageState extends State<DetailPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(),
+    appBar: const ZambaruBar(),
     bottomNavigationBar: const AppNavBar(),
     body: FutureBuilder<Map<String, dynamic>>(
       future: find,
@@ -1828,7 +1876,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final user = db.auth.currentUser;
     final email = user?.email;
     return Scaffold(
-      appBar: AppBar(),
+      appBar: const ZambaruBar(),
       bottomNavigationBar: const AppNavBar(),
       body: ListView(
         padding: const EdgeInsets.all(28),
@@ -2083,7 +2131,7 @@ class PosterLanguagesPage extends StatelessWidget {
   const PosterLanguagesPage({super.key});
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(),
+    appBar: const ZambaruBar(),
     bottomNavigationBar: const AppNavBar(),
     body: GridView.count(
       crossAxisCount: 4,
@@ -2233,7 +2281,7 @@ class _PosterPageState extends State<PosterPage> {
   Widget build(BuildContext context) {
     final text = posters[widget.code]!;
     return Scaffold(
-      appBar: AppBar(),
+      appBar: const ZambaruBar(),
       bottomNavigationBar: AppNavBar(language: widget.code),
       body: SafeArea(
         child: Column(
