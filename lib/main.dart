@@ -356,16 +356,16 @@ class _LostAppState extends State<LostApp> with WidgetsBindingObserver {
         children: [
           if (child != null) child,
           Positioned(
-            top: MediaQuery.paddingOf(context).top + 4,
-            right: 6,
+            top: MediaQuery.paddingOf(context).top + 58,
+            right: 10,
             child: GestureDetector(
               onTap: openFreeDiagnostic,
               child: Opacity(
-                opacity: 0.85,
+                opacity: 0.82,
                 child: Image.asset(
                   'assets/free_diagnostic_logo.png',
-                  width: 104,
-                  height: 104,
+                  width: 120,
+                  height: 120,
                 ),
               ),
             ),
@@ -1236,7 +1236,7 @@ class _Sprockets extends CustomPainter {
 // One frame of a vertical film reel: perforated rails each side, a rounded
 // photo in the gate, a single claim action. Frames sit flush so the
 // perforations read as one continuous strip scrolling top to bottom.
-class FilmFrame extends StatelessWidget {
+class FilmFrame extends StatefulWidget {
   const FilmFrame({
     super.key,
     this.image,
@@ -1252,98 +1252,189 @@ class FilmFrame extends StatelessWidget {
   final String? status;
   final VoidCallback? onTap;
   final VoidCallback? onClaim;
+  @override
+  State<FilmFrame> createState() => _FilmFrameState();
+}
 
-  Color get _dot => switch (status) {
+class _FilmFrameState extends State<FilmFrame> {
+  int reaction = 0; // 1 like, -1 dislike, 0 none
+  bool saved = false;
+
+  Color get _dot => switch (widget.status) {
     'returned' => const Color(0xff9aa6ad),
     'handed_over' => const Color(0xffd98a1f),
     _ => acceptGreen,
   };
 
+  // One action in the bar under a frame: an icon, optionally a small badge.
+  Widget _act(
+    IconData icon,
+    String tip,
+    VoidCallback? onTap, {
+    Color? color,
+    String? badge,
+  }) => Expanded(
+    child: InkResponse(
+      onTap: onTap,
+      radius: 22,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 20, color: color ?? ink),
+            SizedBox(
+              height: 11,
+              child: badge == null
+                  ? null
+                  : Text(
+                      badge,
+                      style: const TextStyle(fontSize: 9, color: Colors.black54),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
-    final stamp = date == null
-        ? ''
-        : '$date'.substring(0, 16).replaceFirst(' ', '  ');
-    final rail = SizedBox(
-      width: 22,
-      child: CustomPaint(painter: _Sprockets()),
-    );
+    final rail = SizedBox(width: 22, child: CustomPaint(painter: _Sprockets()));
+    final demo = widget.emoji != null;
     return Semantics(
-      label: emoji == null ? 'Находка $stamp' : 'DEMO $stamp',
+      label: demo ? 'DEMO' : 'Находка',
       child: Container(
         color: filmDark,
-        height: 332,
-        child: Row(
-          children: [
-            rail,
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Opacity(
-                  // Examples are dimmed so they never look like real finds.
-                  opacity: emoji == null ? 1 : .55,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: Material(
-                      color: mist,
-                      child: InkWell(
-                        onTap: onTap,
-                        child: Stack(
-                          fit: StackFit.expand,
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              rail,
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Opacity(
+                    opacity: demo ? .55 : 1,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        color: paper,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            if (image != null)
-                              Image.network(
-                                image!,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const Center(
-                                  child: Icon(
-                                    Icons.broken_image_outlined,
-                                    color: Colors.black38,
-                                    size: 42,
+                            SizedBox(
+                              height: 244,
+                              child: Material(
+                                color: mist,
+                                child: InkWell(
+                                  onTap: widget.onTap,
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      if (widget.image != null)
+                                        Image.network(
+                                          widget.image!,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) => const Center(
+                                            child: Icon(
+                                              Icons.broken_image_outlined,
+                                              color: Colors.black38,
+                                              size: 42,
+                                            ),
+                                          ),
+                                        ),
+                                      if (widget.emoji != null)
+                                        Center(
+                                          child: Text(
+                                            widget.emoji!,
+                                            style: const TextStyle(fontSize: 92),
+                                          ),
+                                        ),
+                                      if (widget.status != null)
+                                        Positioned(
+                                          left: 12,
+                                          top: 12,
+                                          child: Container(
+                                            width: 13,
+                                            height: 13,
+                                            decoration: BoxDecoration(
+                                              color: _dot,
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color: Colors.white70,
+                                                width: 2,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
                                   ),
                                 ),
                               ),
-                            if (emoji != null)
-                              Center(
-                                child: Text(
-                                  emoji!,
-                                  style: const TextStyle(fontSize: 104),
+                            ),
+                            Row(
+                              children: [
+                                _act(
+                                  Icons.front_hand,
+                                  'Это моя вещь',
+                                  widget.onClaim,
+                                  color: brandRed,
                                 ),
-                              ),
-                            if (status != null)
-                              Positioned(
-                                left: 12,
-                                top: 12,
-                                child: Container(
-                                  width: 13,
-                                  height: 13,
-                                  decoration: BoxDecoration(
-                                    color: _dot,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: Colors.white70,
-                                      width: 2,
-                                    ),
+                                _act(
+                                  Icons.chat_bubble_outline,
+                                  'Чат',
+                                  widget.onClaim,
+                                ),
+                                _act(
+                                  reaction == 1
+                                      ? Icons.thumb_up
+                                      : Icons.thumb_up_outlined,
+                                  'Нравится',
+                                  () => setState(
+                                    () => reaction = reaction == 1 ? 0 : 1,
+                                  ),
+                                  color: reaction == 1 ? acceptGreen : ink,
+                                ),
+                                _act(
+                                  reaction == -1
+                                      ? Icons.thumb_down
+                                      : Icons.thumb_down_outlined,
+                                  'Не нравится',
+                                  () => setState(
+                                    () => reaction = reaction == -1 ? 0 : -1,
+                                  ),
+                                  color: reaction == -1 ? brandRed : ink,
+                                ),
+                                _act(
+                                  Icons.ios_share,
+                                  'Поделиться',
+                                  () => openSite(appLink),
+                                ),
+                                _act(
+                                  saved ? Icons.bookmark : Icons.bookmark_border,
+                                  'Следить',
+                                  () => setState(() => saved = !saved),
+                                  color: saved ? brandRed : ink,
+                                ),
+                                _act(
+                                  Icons.place_outlined,
+                                  'Где нашли',
+                                  () => toast(
+                                    context,
+                                    tr(context, 'Карта появится позже'),
                                   ),
                                 ),
-                              ),
-                            if (onClaim != null)
-                              Positioned(
-                                right: 12,
-                                bottom: 12,
-                                child: Material(
-                                  color: Colors.white,
-                                  shape: const CircleBorder(),
-                                  elevation: 3,
-                                  child: IconButton(
-                                    tooltip: tr(context, 'Это моя вещь'),
-                                    onPressed: onClaim,
-                                    icon: const Icon(Icons.front_hand),
-                                    color: brandRed,
-                                    iconSize: 28,
+                                _act(
+                                  Icons.flag_outlined,
+                                  'Пожаловаться',
+                                  () => toast(
+                                    context,
+                                    tr(context, 'Жалоба отправлена'),
                                   ),
                                 ),
-                              ),
+                              ],
+                            ),
                           ],
                         ),
                       ),
@@ -1351,9 +1442,9 @@ class FilmFrame extends StatelessWidget {
                   ),
                 ),
               ),
-            ),
-            rail,
-          ],
+              rail,
+            ],
+          ),
         ),
       ),
     );
