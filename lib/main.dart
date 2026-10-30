@@ -22,6 +22,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -1106,6 +1107,77 @@ class _FeedPageState extends State<FeedPage> {
     ),
   );
 
+  // A sponsored slot shown after every three finds. Placeholder for now;
+  // its content will be driven from an admin panel later.
+  Widget _adBanner(BuildContext context) {
+    final rail = SizedBox(width: 22, child: CustomPaint(painter: _Sprockets()));
+    return Container(
+      color: filmDark,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            rail,
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: InkWell(
+                  onTap: () => openSite('https://www.zambaruno.com'),
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    height: 120,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xff2f84c7), Color(0xff1f6fae)],
+                      ),
+                    ),
+                    child: Stack(
+                      children: [
+                        Positioned(
+                          top: 8,
+                          left: 12,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white24,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              tr(context, 'Реклама'),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                letterSpacing: .5,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const Center(
+                          child: Icon(
+                            Icons.campaign_outlined,
+                            color: Colors.white,
+                            size: 38,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            rail,
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: const ZambaruBar(),
@@ -1134,7 +1206,8 @@ class _FeedPageState extends State<FeedPage> {
             return ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: EdgeInsets.zero,
-              itemCount: count + (header ? 1 : 0) + (footer ? 1 : 0),
+              itemCount:
+                  count + (count ~/ 3) + (header ? 1 : 0) + (footer ? 1 : 0),
               itemBuilder: (context, listIndex) {
                 if (header && listIndex == 0) {
                   return Padding(
@@ -1153,8 +1226,9 @@ class _FeedPageState extends State<FeedPage> {
                     ),
                   );
                 }
-                final index = listIndex - (header ? 1 : 0);
-                if (index == count) {
+                final d = listIndex - (header ? 1 : 0);
+                final content = count + (count ~/ 3);
+                if (d == content) {
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     child: Center(
@@ -1171,6 +1245,10 @@ class _FeedPageState extends State<FeedPage> {
                     ),
                   );
                 }
+                if (d % 4 == 3) {
+                  return _adBanner(context);
+                }
+                final index = (d ~/ 4) * 3 + (d % 4);
                 if (showDemo) {
                   return FilmFrame(
                     emoji: demos[index],
@@ -1409,7 +1487,7 @@ class _FilmFrameState extends State<FilmFrame> {
                                 _act(
                                   Icons.ios_share,
                                   'Поделиться',
-                                  () => openSite(appLink),
+                                  () => Share.share('LOST — $appLink'),
                                 ),
                                 _act(
                                   saved ? Icons.bookmark : Icons.bookmark_border,
