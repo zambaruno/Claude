@@ -30,7 +30,7 @@ const supabaseKey = String.fromEnvironment('SUPABASE_ANON_KEY');
 // Permanent link printed as a QR code on posters: the Play Store page of this app.
 const appLink = String.fromEnvironment(
   'LOST_APP_LINK',
-  defaultValue: 'https://play.google.com/store/apps/details?id=com.zambaruno.lost',
+  defaultValue: 'https://www.zambaru.com/lost-app',
 );
 // Web OAuth client ID enables the native Google account picker.
 const googleWebClientId = String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
@@ -498,87 +498,6 @@ class ZambaruBar extends StatelessWidget implements PreferredSizeWidget {
               ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
-}
-
-// The Zambaru family: LOST and Zambaruno Free Diagnostic, each opening its
-// site in the in-app browser so every download still flows through Zambaru.
-class ProjectsPage extends StatelessWidget {
-  const ProjectsPage({super.key});
-
-  Widget _card(
-    BuildContext context, {
-    required Widget logo,
-    required String title,
-    required String subtitle,
-    required String url,
-  }) => Container(
-    margin: const EdgeInsets.only(bottom: 16),
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(
-      color: paper,
-      borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: const Color(0xffe6e6e6)),
-    ),
-    child: Column(
-      children: [
-        SizedBox(height: 76, child: logo),
-        const SizedBox(height: 12),
-        Text(
-          title,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          subtitle,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 13, color: Colors.black54),
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton.icon(
-            style: FilledButton.styleFrom(
-              backgroundColor: brandRed,
-              padding: const EdgeInsets.symmetric(vertical: 13),
-            ),
-            onPressed: () => openSite(url),
-            icon: const Icon(Icons.open_in_new, size: 18),
-            label: Text(tr(context, 'Открыть на сайте')),
-          ),
-        ),
-      ],
-    ),
-  );
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: const ZambaruBar(),
-    bottomNavigationBar: const AppNavBar(),
-    body: ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        _card(
-          context,
-          logo: Image.asset('assets/lost_logo.png', fit: BoxFit.contain),
-          title: 'LOST',
-          subtitle: tr(context, 'Найти и вернуть потерянные вещи'),
-          url: 'https://www.zambaru.com',
-        ),
-        _card(
-          context,
-          logo: const Icon(
-            Icons.local_laundry_service,
-            size: 66,
-            color: brandRed,
-          ),
-          title: 'Zambaruno Free Diagnostic',
-          subtitle: tr(context, 'Бесплатная диагностика техники'),
-          url: 'https://www.zambaruno.com',
         ),
       ],
     ),
@@ -1999,19 +1918,6 @@ class _ProfilePageState extends State<ProfilePage> {
                     padding: const EdgeInsets.all(14),
                     icon: const Icon(Icons.logout),
                   ),
-          ),
-          const SizedBox(height: 28),
-          Center(
-            child: IconButton.outlined(
-              tooltip: tr(context, 'Проекты Zambaru'),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ProjectsPage()),
-              ),
-              iconSize: 28,
-              padding: const EdgeInsets.all(14),
-              icon: const Icon(Icons.apps),
-            ),
           ),
         ],
       ),
