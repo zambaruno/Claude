@@ -220,7 +220,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(FilmFrame), findsWidgets);
     expect(find.byType(SignInPage), findsNothing);
-    await tester.tap(find.byIcon(Icons.accessibility_new).first);
+    await tester.tap(find.byIcon(Icons.front_hand).first);
     await tester.pumpAndSettle();
     expect(find.text('Это демонстрационный пример. Настоящие находки доступны после входа.'), findsOneWidget);
     expect(find.byType(SignInPage), findsNothing);
