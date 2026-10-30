@@ -1001,7 +1001,7 @@ class _FeedPageState extends State<FeedPage> {
             final footer = !signedIn;
             return ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(14, 10, 14, 24),
+              padding: EdgeInsets.zero,
               itemCount: count + (header ? 1 : 0) + (footer ? 1 : 0),
               itemBuilder: (context, listIndex) {
                 if (header && listIndex == 0) {
@@ -1040,37 +1040,32 @@ class _FeedPageState extends State<FeedPage> {
                   );
                 }
                 if (showDemo) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: FilmFrame(
-                      emoji: demos[index],
-                      date: DateTime.now().subtract(
-                        Duration(hours: (index + 1) * 4),
-                      ),
-                      onTap: showDemoInfo,
-                      onClaim: showDemoInfo,
+                  return FilmFrame(
+                    emoji: demos[index],
+                    date: DateTime.now().subtract(
+                      Duration(hours: (index + 1) * 4),
                     ),
+                    onTap: showDemoInfo,
+                    onClaim: showDemoInfo,
                   );
                 }
                 final data = real[index];
                 final own = data['finder_id'] == db.auth.currentUser?.id;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 14),
-                  child: FilmFrame(
-                    image: db.storage
-                        .from('finds')
-                        .getPublicUrl(data['image_path'] as String),
-                    date: DateTime.tryParse(
-                      data['created_at']?.toString() ?? '',
-                    )?.toLocal(),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => DetailPage(id: data['id'] as String),
-                      ),
+                return FilmFrame(
+                  image: db.storage
+                      .from('finds')
+                      .getPublicUrl(data['image_path'] as String),
+                  date: DateTime.tryParse(
+                    data['created_at']?.toString() ?? '',
+                  )?.toLocal(),
+                  status: data['status'] as String?,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => DetailPage(id: data['id'] as String),
                     ),
-                    onClaim: own ? null : () => showClaim(data),
                   ),
+                  onClaim: own ? null : () => showClaim(data),
                 );
               },
             );
@@ -1081,83 +1076,152 @@ class _FeedPageState extends State<FeedPage> {
   );
 }
 
-// One find in the feed: a clean photo tile with a single action.
+// Dark film stock the reel is printed on.
+const filmDark = Color(0xff121418);
+
+// Punched sprocket holes running down one edge of the film.
+class _Sprockets extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final hole = Paint()..color = paper;
+    const holeW = 9.0, holeH = 13.0, period = 23.0;
+    final x = (size.width - holeW) / 2;
+    for (double y = 6; y + holeH < size.height; y += period) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(x, y, holeW, holeH),
+          const Radius.circular(3),
+        ),
+        hole,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// One frame of a vertical film reel: perforated rails each side, a rounded
+// photo in the gate, a single claim action. Frames sit flush so the
+// perforations read as one continuous strip scrolling top to bottom.
 class FilmFrame extends StatelessWidget {
   const FilmFrame({
     super.key,
     this.image,
     this.emoji,
     this.date,
+    this.status,
     this.onTap,
     this.onClaim,
   });
   final String? image;
   final String? emoji;
   final DateTime? date;
+  final String? status;
   final VoidCallback? onTap;
   final VoidCallback? onClaim;
+
+  Color get _dot => switch (status) {
+    'returned' => const Color(0xff9aa6ad),
+    'handed_over' => const Color(0xffd98a1f),
+    _ => acceptGreen,
+  };
+
   @override
   Widget build(BuildContext context) {
     final stamp = date == null
         ? ''
         : '$date'.substring(0, 16).replaceFirst(' ', '  ');
+    final rail = SizedBox(
+      width: 22,
+      child: CustomPaint(painter: _Sprockets()),
+    );
     return Semantics(
       label: emoji == null ? 'Находка $stamp' : 'DEMO $stamp',
-      child: Opacity(
-        // Examples are dimmed so they never look like real finds.
-        opacity: emoji == null ? 1 : .55,
-        child: SizedBox(
-          height: 300,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(22),
-            child: Material(
-              color: mist,
-              child: InkWell(
-                onTap: onTap,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    if (image != null)
-                      Image.network(
-                        image!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Center(
-                          child: Icon(
-                            Icons.broken_image_outlined,
-                            color: Colors.black38,
-                            size: 42,
-                          ),
+      child: Container(
+        color: filmDark,
+        height: 332,
+        child: Row(
+          children: [
+            rail,
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Opacity(
+                  // Examples are dimmed so they never look like real finds.
+                  opacity: emoji == null ? 1 : .55,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: Material(
+                      color: mist,
+                      child: InkWell(
+                        onTap: onTap,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            if (image != null)
+                              Image.network(
+                                image!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const Center(
+                                  child: Icon(
+                                    Icons.broken_image_outlined,
+                                    color: Colors.black38,
+                                    size: 42,
+                                  ),
+                                ),
+                              ),
+                            if (emoji != null)
+                              Center(
+                                child: Text(
+                                  emoji!,
+                                  style: const TextStyle(fontSize: 104),
+                                ),
+                              ),
+                            if (status != null)
+                              Positioned(
+                                left: 12,
+                                top: 12,
+                                child: Container(
+                                  width: 13,
+                                  height: 13,
+                                  decoration: BoxDecoration(
+                                    color: _dot,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white70,
+                                      width: 2,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            if (onClaim != null)
+                              Positioned(
+                                right: 12,
+                                bottom: 12,
+                                child: Material(
+                                  color: Colors.white,
+                                  shape: const CircleBorder(),
+                                  elevation: 3,
+                                  child: IconButton(
+                                    tooltip: tr(context, 'Это моя вещь'),
+                                    onPressed: onClaim,
+                                    icon: const Icon(Icons.front_hand),
+                                    color: brandRed,
+                                    iconSize: 28,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
-                    if (emoji != null)
-                      Center(
-                        child: Text(
-                          emoji!,
-                          style: const TextStyle(fontSize: 112),
-                        ),
-                      ),
-                    if (onClaim != null)
-                      Positioned(
-                        right: 12,
-                        bottom: 12,
-                        child: Material(
-                          color: Colors.white,
-                          shape: const CircleBorder(),
-                          elevation: 3,
-                          child: IconButton(
-                            tooltip: tr(context, 'Это моя вещь'),
-                            onPressed: onClaim,
-                            icon: const Icon(Icons.accessibility_new),
-                            color: brandRed,
-                            iconSize: 30,
-                          ),
-                        ),
-                      ),
-                  ],
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
+            rail,
+          ],
         ),
       ),
     );
