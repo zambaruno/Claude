@@ -7,7 +7,7 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: HomePage()));
     await tester.longPress(find.byType(InkWell));
     await tester.pumpAndSettle();
-    expect(find.textContaining('0.2.0 (local)'), findsOneWidget);
+    expect(find.textContaining('$appVersion (local)'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 
