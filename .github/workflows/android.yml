@@ -78,9 +78,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp build/app/outputs/flutter-apk/app-arm64-v8a-debug.apk lost-latest.apk
-          gh release delete latest-apk --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
-          gh release create latest-apk lost-latest.apk \
-            --repo "$GITHUB_REPOSITORY" \
-            --target "$GITHUB_SHA" \
-            --title "LOST — latest test build (#${{ github.run_number }})" \
-            --notes "Install on Android: tap lost-latest.apk below. Debug build ${{ github.run_number }}, commit ${GITHUB_SHA:0:7}."
+          notes="Install on Android: tap lost-latest.apk below. Debug build ${{ github.run_number }}, commit ${GITHUB_SHA:0:7}."
+          if gh release view latest-apk --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload latest-apk lost-latest.apk --repo "$GITHUB_REPOSITORY" --clobber
+            gh release edit latest-apk --repo "$GITHUB_REPOSITORY" \
+              --title "LOST — latest test build (#${{ github.run_number }})" --notes "$notes"
+          else
+            gh release create latest-apk lost-latest.apk \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "LOST — latest test build (#${{ github.run_number }})" \
+              --notes "$notes"
+          fi
