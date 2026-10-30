@@ -12,6 +12,9 @@ on:
         type: boolean
         default: true
 
+permissions:
+  contents: write
+
 jobs:
   play_bundle:
     runs-on: ubuntu-latest
@@ -68,6 +71,20 @@ jobs:
           name: LOST-Play-release-AAB
           path: build/app/outputs/bundle/release/app-release.aab
           if-no-files-found: error
+      - name: Publish AAB as a downloadable Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp build/app/outputs/bundle/release/app-release.aab lost-release.aab
+          notes="Signed Play release AAB. Build ${{ github.run_number }}, commit ${GITHUB_SHA:0:7}. Upload this file to Play Console -> Closed testing."
+          if gh release view latest-aab --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload latest-aab lost-release.aab --repo "$GITHUB_REPOSITORY" --clobber
+            gh release edit latest-aab --repo "$GITHUB_REPOSITORY" \
+              --title "LOST — Play release AAB (#${{ github.run_number }})" --notes "$notes"
+          else
+            gh release create latest-aab lost-release.aab --repo "$GITHUB_REPOSITORY" \
+              --title "LOST — Play release AAB (#${{ github.run_number }})" --notes "$notes"
+          fi
       - name: Check Google Play credential
         if: ${{ github.event_name == 'push' || inputs.upload_to_play }}
         env:
