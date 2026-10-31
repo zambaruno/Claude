@@ -352,26 +352,9 @@ class _LostAppState extends State<LostApp> with WidgetsBindingObserver {
         ),
         useMaterial3: true,
       ),
-      // A large, semi-transparent Free Diagnostic mark on every screen.
+      // A large, draggable Free Diagnostic mark on every screen.
       builder: (context, child) => Stack(
-        children: [
-          if (child != null) child,
-          Positioned(
-            top: MediaQuery.paddingOf(context).top + 58,
-            right: 10,
-            child: GestureDetector(
-              onTap: openFreeDiagnostic,
-              child: Opacity(
-                opacity: 0.82,
-                child: Image.asset(
-                  'assets/free_diagnostic_logo.png',
-                  width: 120,
-                  height: 120,
-                ),
-              ),
-            ),
-          ),
-        ],
+        children: [if (child != null) child, const DraggableMark()],
       ),
       home: const HomePage(),
     ),
@@ -495,6 +478,50 @@ Future<void> openSite(String url) async {
     await launchUrl(Uri.parse(url), mode: LaunchMode.inAppBrowserView);
   } catch (_) {
     await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+  }
+}
+
+// Draggable Free Diagnostic mark shown over every screen. Drag to move,
+// it snaps to the nearest side edge; a tap opens the Free Diagnostic page.
+class DraggableMark extends StatefulWidget {
+  const DraggableMark({super.key});
+  @override
+  State<DraggableMark> createState() => _DraggableMarkState();
+}
+
+class _DraggableMarkState extends State<DraggableMark> {
+  static const double size = 120;
+  Offset? pos;
+
+  @override
+  Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final w = media.size.width;
+    final h = media.size.height;
+    final topPad = media.padding.top;
+    final minY = topPad + 6;
+    final maxY = h - size - media.padding.bottom - 6;
+    pos ??= Offset(w - size - 8, topPad + 58);
+    final x = pos!.dx.clamp(0.0, w - size);
+    final y = pos!.dy.clamp(minY, maxY < minY ? minY : maxY);
+    return Positioned(
+      left: x,
+      top: y,
+      child: GestureDetector(
+        onTap: openFreeDiagnostic,
+        onPanUpdate: (d) =>
+            setState(() => pos = Offset(x + d.delta.dx, y + d.delta.dy)),
+        onPanEnd: (_) => setState(() {
+          final toLeft = x < (w - size) / 2;
+          pos = Offset(toLeft ? 6 : w - size - 6, y);
+        }),
+        child: Image.asset(
+          'assets/free_diagnostic_logo.png',
+          width: size,
+          height: size,
+        ),
+      ),
+    );
   }
 }
 
